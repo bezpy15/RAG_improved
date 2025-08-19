@@ -176,7 +176,7 @@ with st.sidebar:
             "With this slider, you can select the number of abstracts it uses as overall context."
         ),
     )
-    search_type = st.selectbox("Retrieval mode", ["similarity", "mmr"], help="MMR reduces redundancy among results.")
+    search_type = st.selectbox("Retrieval mode", ["similarity", "mmr"], help="Similarity: returns the closest matching abstracts. Good for depth; may repeat similar studies.MMR (Diverse): returns a mix of relevant abstracts from different angles/models. Fewer repeats; broader view.")
     show_context = st.checkbox("Show retrieved context", value=False)
     st.divider()
     if st.button("Clear cached resources"):
