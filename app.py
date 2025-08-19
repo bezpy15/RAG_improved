@@ -306,17 +306,22 @@ if submit and query.strip():
                 pmid_str = str(pmid)
                 url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid_str}/" if pmid_str.isdigit() else None
 
-                # Keep the header clean; clickable title inside the expander
-                header = f"Source {i}: PMID {pmid_str}"
-                with st.expander(header):
+                # Row with expander on the left and a PubMed button on the right
+                left, right = st.columns([0.80, 0.20])
+                with left:
+                    header = f"{i}. {title} — PMID {pmid_str}"
+                    with st.expander(header):
+                        st.write(d.page_content)
+                with right:
                     if url:
-                        st.markdown(f"**[{title}]({url})**")
+                        st.link_button("View on PubMed", url, use_container_width=True)
                     else:
-                        st.markdown(f"**{title}**")
+                        st.caption("No PubMed link")
 
-                    st.write(d.page_content)
+                st.divider()
+else:
+    st.info("Enter a question and click **Run**.")
 
-                    if url:
-                        st.markdown(f"[Open on PubMed]({url})")
+
 else:
     st.info("Enter a question and click **Run**.")
