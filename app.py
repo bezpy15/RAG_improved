@@ -300,25 +300,25 @@ if submit and query.strip():
             answer_text = getattr(result, "content", result)
             st.write(answer_text)
 
-        st.markdown("### Sources")
-        for i, d in enumerate(docs, start=1):
-            pmid = extract_pmid(d) or "NA"
-            title = extract_title(d, pmid)
-            pmid_str = str(pmid)
-            url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid_str}/" if pmid_str.isdigit() else None
+                st.markdown("### Sources")
+                for i, d in enumerate(docs, start=1):
+                    pmid = extract_pmid(d) or "NA"
+                    title = extract_title(d, pmid)
+                    pmid_str = str(pmid)
+                    url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid_str}/" if pmid_str.isdigit() else None
 
     # Keep the header clean; make the title clickable inside the expander
-            header = f"Source {i}: PMID {pmid_str}"
-            with st.expander(header):
-                if url:
-                    st.markdown(f"**[{title}]({url})**")
-                else:
-                    st.markdown(f"**{title}**")
+                    header = f"Source {i}: PMID {pmid_str}"
+                    with st.expander(header):
+                        if url:
+                            st.markdown(f"**[{title}]({url})**")
+                        else:
+                            st.markdown(f"**{title}**")
 
-            st.write(d.page_content)
+                        st.write(d.page_content)
 
-            if url:
-                st.markdown(f"[Open on PubMed]({url})")
+                        if url:
+                    st.markdown(f"[Open on PubMed]({url})")
 
 
 else:
