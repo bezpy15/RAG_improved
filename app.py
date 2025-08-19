@@ -15,6 +15,9 @@ from langchain_core.documents import Document
 
 # Utilities
 import gdown
+import re
+import requests
+from bs4 import BeautifulSoup
 
 # -----------------------------
 # Page setup & header
@@ -80,6 +83,40 @@ def extract_pmid(doc) -> str | None:
             return str(v)
     return extract_pmid_from_content(getattr(doc, "page_content", "") or "")
 
+st.cache_data(show_spinner=False, ttl=7*24*3600)  # cache for 7 days
+def fetch_pubmed_title(pmid: str) -> str | None:
+    if not pmid or not str(pmid).isdigit():
+        return None
+    url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+    try:
+        r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        # Best signals first
+        m = soup.find("meta", attrs={"name": "citation_title"})
+        if m and m.get("content"):
+            return m["content"].strip()
+
+        m = soup.find("meta", attrs={"property": "og:title"})
+        if m and m.get("content"):
+            return m["content"].strip()
+
+        # Fallback: <title> (strip trailing " - PubMed")
+        t = soup.title.string if soup.title and soup.title.string else ""
+        t = re.sub(r"\s*[-|]\s*PubMed.*$", "", t).strip()
+        return t or None
+    except Exception:
+        return None
+
+
+def extract_title(doc, pmid: str | None) -> str:
+    # 1) Try metadata if it exists
+    md = (getattr(doc, "metadata", None) or {})
+    for k in ("title", "Title", "paper_title", "document_title", "name"):
+        v = md.get(k)
+        if v:
+            return str(v)
 
 # -----------------------------
 # Helpers
@@ -128,7 +165,7 @@ def docs_to_context(docs: List[Document]) -> str:
     lines = []
     for d in docs:
         pmid = extract_pmid(d) or "NA"
-        title = d.metadata.get("title") or d.metadata.get("Title") or ""
+        title = extract_title(d, pmid)
         snippet = (d.page_content or "")[:800].replace("\n", " ")
         lines.append(f"[PMID:{pmid}] {title} :: {snippet}")
     return "\n\n".join(lines)
@@ -256,7 +293,7 @@ if submit and query.strip():
             st.markdown("### Sources")
             for i, d in enumerate(docs, start=1):
                 pmid = extract_pmid(d) or "NA"
-                title = d.metadata.get("title") or d.metadata.get("Title") or "(no title)"
+                title = title = extract_title(d, pmid)
                 url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if str(pmid).isdigit() else None
 
                 with st.expander(f"Source {i}: PMID {pmid} — {title}"):
