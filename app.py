@@ -20,7 +20,7 @@ import gdown
 # Page setup & header
 # -----------------------------
 st.set_page_config(page_title="RAG-Based BHB Chatbot", page_icon="🔎", layout="wide")
-st.title("🔎 Beta-hydroxybutyrate Chatbot")
+st.title("Beta-hydroxybutyrate Chatbot")
 st.caption(
     "This is an LLM model trained exclusively with scientific literature about BHB. "
     "It should give you a more precise and in-depth answer about BHB than standard LLMs like ChatGPT. "
