@@ -53,6 +53,34 @@ if not OPENAI_API_KEY or not DRIVE_FILE_ID or not EMBEDDING_MODEL:
     st.error("Missing required secrets. Please set OPENAI_API_KEY, DRIVE_FILE_ID, and EMBEDDING_MODEL in Secrets.")
     st.stop()
 
+
+import re  # add this with your other imports
+
+def extract_pmid_from_content(text: str) -> str | None:
+    if not text:
+        return None
+    # Pattern like: --- PUBMED ABSTRACT (32396388)
+    m = re.search(r"^---\s*PUBMED\s+ABSTRACT\s*\(\s*(?:PMID[: ]*)?(\d{5,9})\s*\)",
+                  text, flags=re.IGNORECASE | re.MULTILINE)
+    if m:
+        return m.group(1)
+    # Fallbacks if format varies
+    m = re.search(r"\bPMID\s*[:#]?\s*(\d{5,9})\b", text, flags=re.IGNORECASE)
+    if m:
+        return m.group(1)
+    m = re.search(r"\((\d{5,9})\)", text[:200])  # first 200 chars as last resort
+    return m.group(1) if m else None
+
+def extract_pmid(doc) -> str | None:
+    # try metadata first (in case you add it later), then parse from content
+    md = (getattr(doc, "metadata", None) or {})
+    for k in ("pmid", "PMID", "source_article_id", "id"):
+        v = md.get(k)
+        if v not in (None, ""):
+            return str(v)
+    return extract_pmid_from_content(getattr(doc, "page_content", "") or "")
+
+
 # -----------------------------
 # Helpers
 # -----------------------------
@@ -99,7 +127,7 @@ def _ensure_index_ready(cache_dir: str = ".cache") -> str:
 def docs_to_context(docs: List[Document]) -> str:
     lines = []
     for d in docs:
-        pmid = d.metadata.get("pmid") or d.metadata.get("PMID") or d.metadata.get("id") or d.metadata.get("art_id") or "NA"
+        pmid = extract_pmid(d) or "NA"
         title = d.metadata.get("title") or d.metadata.get("Title") or ""
         snippet = (d.page_content or "")[:800].replace("\n", " ")
         lines.append(f"[PMID:{pmid}] {title} :: {snippet}")
@@ -227,7 +255,7 @@ if submit and query.strip():
 
             st.markdown("### Sources")
             for i, d in enumerate(docs, start=1):
-                pmid = d.metadata.get("pmid") or d.metadata.get("PMID") or d.metadata.get("id") or d.metadata.get("art_id") or "NA"
+                pmid = extract_pmid(d) or "NA"
                 title = d.metadata.get("title") or d.metadata.get("Title") or "(no title)"
                 url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if str(pmid).isdigit() else None
 
