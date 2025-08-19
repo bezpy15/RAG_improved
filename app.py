@@ -57,25 +57,22 @@ if not OPENAI_API_KEY or not DRIVE_FILE_ID or not EMBEDDING_MODEL:
     st.stop()
 
 
-import re  # add this with your other imports
+import re
+import requests
+from bs4 import BeautifulSoup
 
 def extract_pmid_from_content(text: str) -> str | None:
     if not text:
         return None
-    # Pattern like: --- PUBMED ABSTRACT (32396388)
     m = re.search(r"^---\s*PUBMED\s+ABSTRACT\s*\(\s*(?:PMID[: ]*)?(\d{5,9})\s*\)",
                   text, flags=re.IGNORECASE | re.MULTILINE)
-    if m:
-        return m.group(1)
-    # Fallbacks if format varies
+    if m: return m.group(1)
     m = re.search(r"\bPMID\s*[:#]?\s*(\d{5,9})\b", text, flags=re.IGNORECASE)
-    if m:
-        return m.group(1)
-    m = re.search(r"\((\d{5,9})\)", text[:200])  # first 200 chars as last resort
+    if m: return m.group(1)
+    m = re.search(r"\((\d{5,9})\)", text[:200])
     return m.group(1) if m else None
 
 def extract_pmid(doc) -> str | None:
-    # try metadata first (in case you add it later), then parse from content
     md = (getattr(doc, "metadata", None) or {})
     for k in ("pmid", "PMID", "source_article_id", "id"):
         v = md.get(k)
@@ -83,7 +80,7 @@ def extract_pmid(doc) -> str | None:
             return str(v)
     return extract_pmid_from_content(getattr(doc, "page_content", "") or "")
 
-st.cache_data(show_spinner=False, ttl=7*24*3600)  # cache for 7 days
+@st.cache_data(show_spinner=False, ttl=7*24*3600)  # ✅ add the decorator
 def fetch_pubmed_title(pmid: str) -> str | None:
     if not pmid or not str(pmid).isdigit():
         return None
@@ -93,7 +90,7 @@ def fetch_pubmed_title(pmid: str) -> str | None:
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
 
-        # Best signals first
+        # Preferred signals
         m = soup.find("meta", attrs={"name": "citation_title"})
         if m and m.get("content"):
             return m["content"].strip()
@@ -102,21 +99,34 @@ def fetch_pubmed_title(pmid: str) -> str | None:
         if m and m.get("content"):
             return m["content"].strip()
 
-        # Fallback: <title> (strip trailing " - PubMed")
+        # Fallback: <title> minus trailing " - PubMed"
         t = soup.title.string if soup.title and soup.title.string else ""
         t = re.sub(r"\s*[-|]\s*PubMed.*$", "", t).strip()
         return t or None
     except Exception:
         return None
 
-
 def extract_title(doc, pmid: str | None) -> str:
-    # 1) Try metadata if it exists
+    # 1) Try metadata first
     md = (getattr(doc, "metadata", None) or {})
     for k in ("title", "Title", "paper_title", "document_title", "name"):
         v = md.get(k)
         if v:
             return str(v)
+
+    # 2) Try PubMed by PMID
+    t = fetch_pubmed_title(pmid) if pmid and str(pmid).isdigit() else None
+    if t:
+        return t
+
+    # 3) Fallback: first non-banner line from the content
+    content = (getattr(doc, "page_content", "") or "")
+    for ln in content.splitlines():
+        ln = ln.strip()
+        if ln and not ln.upper().startswith("--- PUBMED ABSTRACT"):
+            return ln if len(ln) <= 150 else ln[:150] + "…"
+
+    return "(no title)"
 
 # -----------------------------
 # Helpers
