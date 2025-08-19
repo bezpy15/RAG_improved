@@ -320,7 +320,3 @@ if submit and query.strip():
                         st.markdown(f"[Open on PubMed]({url})")
 else:
     st.info("Enter a question and click **Run**.")
-
-
-else:
-    st.info("Enter a question and click **Run**.")
