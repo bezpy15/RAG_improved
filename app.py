@@ -99,7 +99,7 @@ def _ensure_index_ready(cache_dir: str = ".cache") -> str:
 def docs_to_context(docs: List[Document]) -> str:
     lines = []
     for d in docs:
-        pmid = d.metadata.get("pmid") or d.metadata.get("PMID") or d.metadata.get("id") or d.metadata.get("source_article_id") or "NA"
+        pmid = d.metadata.get("pmid") or d.metadata.get("PMID") or d.metadata.get("id") or d.metadata.get("art_id") or "NA"
         title = d.metadata.get("title") or d.metadata.get("Title") or ""
         snippet = (d.page_content or "")[:800].replace("\n", " ")
         lines.append(f"[PMID:{pmid}] {title} :: {snippet}")
@@ -227,7 +227,7 @@ if submit and query.strip():
 
             st.markdown("### Sources")
             for i, d in enumerate(docs, start=1):
-                pmid = d.metadata.get("pmid") or d.metadata.get("PMID") or d.metadata.get("id") or d.metadata.get("source_article_id")or "NA"
+                pmid = d.metadata.get("pmid") or d.metadata.get("PMID") or d.metadata.get("id") or d.metadata.get("art_id") or "NA"
                 title = d.metadata.get("title") or d.metadata.get("Title") or "(no title)"
                 url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if str(pmid).isdigit() else None
 
