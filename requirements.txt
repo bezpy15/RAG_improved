@@ -1,0 +1,8 @@
+streamlit>=1.35
+langchain>=0.2.6
+langchain-community>=0.2.6
+langchain-openai>=0.1.7
+faiss-cpu>=1.7.4
+gdown>=5.2.0
+tiktoken>=0.7.0
+numpy>=1.26.4
