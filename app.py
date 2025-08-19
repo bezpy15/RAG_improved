@@ -318,7 +318,7 @@ if submit and query.strip():
                         st.write(d.page_content)
 
                         if url:
-                    st.markdown(f"[Open on PubMed]({url})")
+                            st.markdown(f"[Open on PubMed]({url})")
 
 
 else:
