@@ -180,6 +180,28 @@ def docs_to_context(docs: List[Document]) -> str:
         lines.append(f"[PMID:{pmid}] {title} :: {snippet}")
     return "\n\n".join(lines)
 
+
+def linkify_pmids_md(text: str) -> str:
+    """Turn PMID mentions into clickable PubMed links in Markdown."""
+    if not text:
+        return ""
+    # [PMID: 12345678]  →  [PMID:12345678](https://pubmed.ncbi.nlm.nih.gov/12345678/)
+    text = re.sub(
+        r"\[PMID:\s*(\d{5,9})\]",
+        lambda m: f"[PMID:{m.group(1)}](https://pubmed.ncbi.nlm.nih.gov/{m.group(1)}/)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    # Plain forms like "PMID: 12345678" or "PMID 12345678" (not already inside [...]):
+    text = re.sub(
+        r"(?<!\])\bPMID[:\s]*([0-9]{5,9})\b",
+        lambda m: f"[PMID:{m.group(1)}](https://pubmed.ncbi.nlm.nih.gov/{m.group(1)}/)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    return text
+
+
 # -----------------------------
 # Load heavy resources (cached)
 # -----------------------------
@@ -297,7 +319,8 @@ if submit and query.strip():
 
             st.markdown("### Answer")
             answer_text = getattr(result, "content", result)
-            st.write(answer_text)
+            answer_md = linkify_pmids_md(str(answer_text))
+            st.markdown(answer_md)
 
             st.markdown("### Sources")
             for i, d in enumerate(docs, start=1):
