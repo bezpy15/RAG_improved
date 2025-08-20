@@ -181,25 +181,36 @@ def docs_to_context(docs: List[Document]) -> str:
     return "\n\n".join(lines)
 
 
+import re  # already imported
+
 def linkify_pmids_md(text: str) -> str:
-    """Turn PMID mentions into clickable PubMed links in Markdown."""
+    """Make only the PMID numbers clickable (not the 'PMID:' label).
+    Works for '[PMID:12345678, 23456789]' and plain 'PMID: 12345678, 23456789'."""
     if not text:
         return ""
-    # [PMID: 12345678]  →  [PMID:12345678](https://pubmed.ncbi.nlm.nih.gov/12345678/)
-    text = re.sub(
-        r"\[PMID:\s*(\d{5,9})\]",
-        lambda m: f"[PMID:{m.group(1)}](https://pubmed.ncbi.nlm.nih.gov/{m.group(1)}/)",
-        text,
-        flags=re.IGNORECASE,
-    )
-    # Plain forms like "PMID: 12345678" or "PMID 12345678" (not already inside [...]):
-    text = re.sub(
-        r"(?<!\])\bPMID[:\s]*([0-9]{5,9})\b",
-        lambda m: f"[PMID:{m.group(1)}](https://pubmed.ncbi.nlm.nih.gov/{m.group(1)}/)",
-        text,
-        flags=re.IGNORECASE,
-    )
+
+    def num_to_link(m: re.Match) -> str:
+        n = m.group(1)
+        return f"[{n}](https://pubmed.ncbi.nlm.nih.gov/{n}/)"
+
+    # 1) Bracketed form: [PMID: ...]  → linkify every 5–9 digit number inside the brackets
+    def repl_bracket(m: re.Match) -> str:
+        inner = m.group(1)  # everything after 'PMID:' inside the brackets
+        linked_inner = re.sub(r"\b(\d{5,9})\b", num_to_link, inner)
+        return f"[PMID:{linked_inner}]"
+
+    text = re.sub(r"\[PMID:\s*(.*?)\]", repl_bracket, text, flags=re.IGNORECASE)
+
+    # 2) Plain form: PMID: 12345, 67890  (not inside brackets)
+    def repl_plain(m: re.Match) -> str:
+        nums = m.group(1)
+        linked = re.sub(r"\b(\d{5,9})\b", num_to_link, nums)
+        return f"PMID:{linked}"
+
+    text = re.sub(r"(?i)\bPMID[:\s]+\s*([0-9][0-9,\s]{4,})", repl_plain, text)
+
     return text
+
 
 
 # -----------------------------
