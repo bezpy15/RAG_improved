@@ -277,13 +277,14 @@ with st.sidebar:
     top_k = st.slider(
         "Number of retrieved abstracts",
         min_value=1,
-        max_value=50,
-        value=5,
+        max_value=100,   # ← was 50
+        value=30,        # ← was 5
         help=(
             "Based on your prompt, the RAG system selects the most relevant abstracts to answer your prompt. "
             "With this slider, you can select the number of abstracts it uses as overall context."
         ),
     )
+
     search_type = st.selectbox("Retrieval mode", ["similarity", "mmr"], help="Similarity: returns the closest matching abstracts. Good for depth; may repeat similar studies.MMR (Diverse): returns a mix of relevant abstracts from different angles/models. Fewer repeats; broader view.")
     show_context = st.checkbox("Show retrieved context", value=False)
     st.divider()
