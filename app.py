@@ -295,6 +295,8 @@ submit = st.button("Run") or st.session_state.pop("auto_submit", False)
 
 # ---- NEW: placeholder right under the text box for the spinner text ----
 spinner_slot = st.empty()
+results_slot = st.container()  # persistent area for results
+
 
 # -----------------------------
 # One-click example prompts (shown BELOW the textbox)
@@ -323,50 +325,56 @@ def retrieve(query: str, k: int, mode: str) -> List[Document]:
 # -----------------------------
 # Main action
 # -----------------------------
+docs = []
+answer_md = ""
+
 if submit and query.strip():
     # Turn ON in-input spinner
     flag_slot.markdown('<div id="loading-flag" style="display:none"></div>', unsafe_allow_html=True)
 
-    # Show the native spinner *right under the text box* using the placeholder
+    # Compute inside the spinner, but DO NOT render results here
     with spinner_slot.container():
         with st.spinner("Retrieving and generating..."):
             docs = retrieve(query, top_k, search_type)
-
-            if not docs:
-                st.warning("No documents retrieved. Check your query or embedding/model compatibility.")
-            else:
-                if show_context:
-                    st.markdown("### Retrieved context")
-                    st.code(docs_to_context(docs))
-
+            if docs:
                 result = doc_chain.invoke({"context": docs, "question": query})
-
-                st.markdown("### Answer")
                 answer_text = getattr(result, "content", result)
                 answer_md = linkify_pmids_md(str(answer_text))
-                st.markdown(answer_md)
 
-                st.markdown("### Sources")
-                for i, d in enumerate(docs, start=1):
-                    pmid = extract_pmid(d) or "NA"
-                    title = extract_title(d, pmid)
-                    pmid_str = str(pmid)
-                    url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid_str}/" if pmid_str.isdigit() else None
-
-                    left, right = st.columns([0.80, 0.20])
-                    with left:
-                        header = f"{i}. {title} — PMID {pmid_str}"
-                        with st.expander(header):
-                            st.write(d.page_content)
-                    with right:
-                        if url:
-                            st.link_button("View on PubMed", url, use_container_width=True)
-                        else:
-                            st.caption("No PubMed link")
-                    st.divider()
-
-    # Clear spinner + in-input flag after work completes
+    # Turn OFF spinner(s)
     spinner_slot.empty()
     flag_slot.empty()
+
+    # --- Render persistently outside the spinner ---
+    with results_slot:
+        if not docs:
+            st.warning("No documents retrieved. Check your query or embedding/model compatibility.")
+        else:
+            if show_context:
+                st.markdown("### Retrieved context")
+                st.code(docs_to_context(docs))
+
+            st.markdown("### Answer")
+            st.markdown(answer_md)
+
+            st.markdown("### Sources")
+            for i, d in enumerate(docs, start=1):
+                pmid = extract_pmid(d) or "NA"
+                title = extract_title(d, pmid)
+                pmid_str = str(pmid)
+                url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid_str}/" if pmid_str.isdigit() else None
+
+                left, right = st.columns([0.80, 0.20])
+                with left:
+                    header = f"{i}. {title} — PMID {pmid_str}"
+                    with st.expander(header):
+                        st.write(d.page_content)
+                with right:
+                    if url:
+                        st.link_button("View on PubMed", url, use_container_width=True)
+                    else:
+                        st.caption("No PubMed link")
+                st.divider()
 else:
     st.info("Enter a question and click **Run**, or choose an example below.")
+
