@@ -282,7 +282,7 @@ def _pick_example(p: str):
     st.session_state["auto_submit"] = True
     #st.rerun()
 
-with st.expander("Try an example prompt", expanded=True):
+with st.expander("View example prompts", expanded=False):
     cols = st.columns(2)
     for i, p in enumerate(EXAMPLE_PROMPTS):
         cols[i % 2].button(p, key=f"ex_{i}", on_click=_pick_example, args=(p,))
