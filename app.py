@@ -33,24 +33,11 @@ st.caption(
 # -----------------------------
 # Configuration via st.secrets
 # -----------------------------
-# REQUIRED:
-#   - OPENAI_API_KEY
-#   - DRIVE_FILE_ID  (Google Drive file ID pointing to a ZIP of your FAISS folder)
-#   - EMBEDDING_MODEL (must match the model used to build the FAISS index)
-#
-# OPTIONAL:
-#   - OPENAI_MODEL (default: gpt-4o-mini)
-#   - INDEX_SUBDIR (subfolder name inside the ZIP; default: faiss_index)
-#   - SYSTEM_PROMPT (override the default system prompt)
-# -----------------------------
-
 OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY", None)
 DRIVE_FILE_ID = st.secrets.get("DRIVE_FILE_ID", None)
 EMBEDDING_MODEL = st.secrets.get("EMBEDDING_MODEL", "text-embedding-3-small")
 OPENAI_MODEL = st.secrets.get("OPENAI_MODEL", "gpt-4o-mini")
 INDEX_SUBDIR = st.secrets.get("INDEX_SUBDIR", "faiss_index")
-
-# Your custom system prompt from Secrets (recommended)
 CUSTOM_SYSTEM_PROMPT = st.secrets.get("SYSTEM_PROMPT", "").strip()
 
 if not OPENAI_API_KEY or not DRIVE_FILE_ID or not EMBEDDING_MODEL:
@@ -68,7 +55,6 @@ EXAMPLE_PROMPTS = [
     "How do ketone esters affect endurance performance/recovery; subgroup by fueling; extract dose, βHB, outcomes; PMIDs?",
     "Do BHB-based interventions benefit MCI/early Alzheimer’s; prioritize trials; extract design, βHB, cognitive outcomes, AEs; PMIDs?",
     "What are exogenous BHB safety/tolerability profiles; extract dose, βHB, GI symptoms, electrolyte/acid–base changes, contraindications; PMIDs?",
-    "Is BHB anti-inflammatory?"
 ]
 
 # -----------------------------
@@ -228,8 +214,8 @@ with st.sidebar:
     top_k = st.slider(
         "Number of retrieved abstracts",
         min_value=1,
-        max_value=100,   # updated
-        value=30,        # updated
+        max_value=100,
+        value=30,
         help=(
             "Based on your prompt, the RAG system selects the most relevant abstracts to answer your prompt. "
             "With this slider, you can select the number of abstracts it uses as overall context."
@@ -254,8 +240,34 @@ vectorstore, doc_chain, embeddings, index_dim, query_dim = load_resources()
 st.sidebar.caption(f"Index dim: {index_dim} | Query dim: {query_dim}")
 
 # -----------------------------
-# Pre-run handler for example buttons
-# (Executes BEFORE the text_input below uses key='query')
+# CSS spinner INSIDE text input (toggled by a hidden flag)
+# -----------------------------
+SPINNER_CSS = """
+<style>
+/* When #loading-flag exists, show a spinner inside the text input */
+body:has(#loading-flag) div[data-testid="stTextInput"] { position: relative; }
+body:has(#loading-flag) div[data-testid="stTextInput"]::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+  border: 2px solid rgba(128,128,128,.35);
+  border-top-color: rgba(128,128,128,.95);
+  border-radius: 50%;
+  animation: bhbspin .6s linear infinite;
+}
+@keyframes bhbspin { to { transform: rotate(360deg); } }
+</style>
+"""
+css_slot = st.empty()
+css_slot.markdown(SPINNER_CSS, unsafe_allow_html=True)
+flag_slot = st.empty()  # we insert/remove a hidden div here to toggle the spinner
+
+# -----------------------------
+# Pre-run handler for example buttons (before text_input uses key='query')
 # -----------------------------
 pending = st.session_state.pop("pending_query", None)
 if pending is not None:
@@ -275,15 +287,13 @@ submit = st.button("Run") or st.session_state.pop("auto_submit", False)
 # -----------------------------
 # One-click example prompts (shown BELOW the textbox)
 # -----------------------------
-with st.expander("View example prompts", expanded=):  # open by default
+with st.expander("View example prompts", expanded=True):
     cols = st.columns(2)
     picked = None
     for i, p in enumerate(EXAMPLE_PROMPTS):
         if cols[i % 2].button(p, key=f"ex_{i}"):
             picked = p
-
     if picked is not None:
-        # Stage the query and trigger a rerun (not inside a callback)
         st.session_state["pending_query"] = picked
         st.session_state["auto_submit"] = True
         st.rerun()
@@ -302,6 +312,9 @@ def retrieve(query: str, k: int, mode: str) -> List[Document]:
 # Main action
 # -----------------------------
 if submit and query.strip():
+    # Turn ON in-input spinner by inserting hidden flag
+    flag_slot.markdown('<div id="loading-flag" style="display:none"></div>', unsafe_allow_html=True)
+
     with st.spinner("Retrieving and generating..."):
         docs = retrieve(query, top_k, search_type)
 
@@ -337,5 +350,8 @@ if submit and query.strip():
                     else:
                         st.caption("No PubMed link")
                 st.divider()
+
+    # Turn OFF in-input spinner
+    flag_slot.empty()
 else:
     st.info("Enter a question and click **Run**, or choose an example below.")
