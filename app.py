@@ -55,6 +55,7 @@ EXAMPLE_PROMPTS = [
     "How do ketone esters affect endurance performance/recovery; subgroup by fueling; extract dose, βHB, outcomes; PMIDs?",
     "Do BHB-based interventions benefit MCI/early Alzheimer’s; prioritize trials; extract design, βHB, cognitive outcomes, AEs; PMIDs?",
     "What are exogenous BHB safety/tolerability profiles; extract dose, βHB, GI symptoms, electrolyte/acid–base changes, contraindications; PMIDs?",
+    "Is BHB anti-inflammatory?"
 ]
 
 # -----------------------------
@@ -244,24 +245,27 @@ st.sidebar.caption(f"Index dim: {index_dim} | Query dim: {query_dim}")
 # -----------------------------
 SPINNER_CSS = """
 <style>
-/* When #loading-flag exists, show a spinner inside the text input */
+/* Center a spinner inside the text input whenever #loading-flag exists */
 body:has(#loading-flag) div[data-testid="stTextInput"] { position: relative; }
 body:has(#loading-flag) div[data-testid="stTextInput"]::after {
   content: "";
   position: absolute;
-  right: 10px;
+  left: 50%;
   top: 50%;
-  width: 16px;
-  height: 16px;
-  margin-top: -8px;
-  border: 2px solid rgba(128,128,128,.35);
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  border: 3px solid rgba(128,128,128,.35);
   border-top-color: rgba(128,128,128,.95);
   border-radius: 50%;
   animation: bhbspin .6s linear infinite;
+  z-index: 2;
+  pointer-events: none;
 }
 @keyframes bhbspin { to { transform: rotate(360deg); } }
 </style>
 """
+
 css_slot = st.empty()
 css_slot.markdown(SPINNER_CSS, unsafe_allow_html=True)
 flag_slot = st.empty()  # we insert/remove a hidden div here to toggle the spinner
@@ -287,7 +291,7 @@ submit = st.button("Run") or st.session_state.pop("auto_submit", False)
 # -----------------------------
 # One-click example prompts (shown BELOW the textbox)
 # -----------------------------
-with st.expander("View example prompts", expanded=True):
+with st.expander("View example prompts", expanded=False):
     cols = st.columns(2)
     picked = None
     for i, p in enumerate(EXAMPLE_PROMPTS):
