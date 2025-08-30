@@ -256,9 +256,12 @@ st.sidebar.caption(f"Index dim: {index_dim} | Query dim: {query_dim}")
 # Pre-run handler for example buttons
 # (Executes BEFORE the text_input below uses key='query')
 # -----------------------------
-if "pending_query" in st.session_state:
-    st.session_state["query"] = st.session_state.pop("pending_query")
+# Handle example-prompt selection BEFORE widgets render
+pending = st.session_state.pop("pending_query", None)
+if pending is not None:
+    st.session_state["query"] = pending
     st.session_state["auto_submit"] = True
+
 
 # -----------------------------
 # Query input + Run button
@@ -277,7 +280,7 @@ def _pick_example(p: str):
     # Do NOT touch st.session_state["query"] here.
     st.session_state["pending_query"] = p
     st.session_state["auto_submit"] = True
-    st.rerun()
+    #st.rerun()
 
 with st.expander("Try an example prompt", expanded=True):
     cols = st.columns(2)
