@@ -30,20 +30,6 @@ st.caption(
     "It is also programmed to give references for all of its claims. ")
 
 # -----------------------------
-# Example prompts (≤15 words each)
-# -----------------------------
-EXAMPLE_PROMPTS = [
-    "Does BHB alter chromatin in humans; separate HDAC from Kbhb; report dose, βHB, assays, PMIDs?",
-    "Do exogenous BHB interventions improve adult cognition; prioritize RCTs; extract dose, peak βHB, AEs; PMIDs?",
-    "Does BHB modulate NLRP3 and cytokines; separate exogenous/endogenous ketosis; report βHB levels; PMIDs?",
-    "Does exogenous BHB improve insulin sensitivity in IR/T2D; prioritize RCTs; extract dose, βHB; PMIDs?",
-    "How do ketone esters affect endurance performance/recovery; subgroup by fueling; extract dose, βHB, outcomes; PMIDs?",
-    "Do BHB-based interventions benefit MCI/early Alzheimer’s; prioritize trials; extract design, βHB, cognitive outcomes, AEs; PMIDs?",
-    "What are exogenous BHB safety/tolerability profiles; extract dose, βHB, GI symptoms, electrolyte/acid–base changes, contraindications; PMIDs?",
-]
-
-
-# -----------------------------
 # Configuration via st.secrets
 # -----------------------------
 # REQUIRED:
@@ -70,10 +56,22 @@ if not OPENAI_API_KEY or not DRIVE_FILE_ID or not EMBEDDING_MODEL:
     st.error("Missing required secrets. Please set OPENAI_API_KEY, DRIVE_FILE_ID, and EMBEDDING_MODEL in Secrets.")
     st.stop()
 
-
 import re
 import requests
 from bs4 import BeautifulSoup
+
+# -----------------------------
+# Example prompts (≤15 words each)
+# -----------------------------
+EXAMPLE_PROMPTS = [
+    "Does BHB alter chromatin in humans; separate HDAC from Kbhb; report dose, βHB, assays, PMIDs?",
+    "Do exogenous BHB interventions improve adult cognition; prioritize RCTs; extract dose, peak βHB, AEs; PMIDs?",
+    "Does BHB modulate NLRP3 and cytokines; separate exogenous/endogenous ketosis; report βHB levels; PMIDs?",
+    "Does exogenous BHB improve insulin sensitivity in IR/T2D; prioritize RCTs; extract dose, βHB; PMIDs?",
+    "How do ketone esters affect endurance performance/recovery; subgroup by fueling; extract dose, βHB, outcomes; PMIDs?",
+    "Do BHB-based interventions benefit MCI/early Alzheimer’s; prioritize trials; extract design, βHB, cognitive outcomes, AEs; PMIDs?",
+    "What are exogenous BHB safety/tolerability profiles; extract dose, βHB, GI symptoms, electrolyte/acid–base changes, contraindications; PMIDs?",
+]
 
 def extract_pmid_from_content(text: str) -> str | None:
     if not text:
@@ -94,7 +92,7 @@ def extract_pmid(doc) -> str | None:
             return str(v)
     return extract_pmid_from_content(getattr(doc, "page_content", "") or "")
 
-@st.cache_data(show_spinner=False, ttl=7*24*3600)  # ✅ add the decorator
+@st.cache_data(show_spinner=False, ttl=7*24*3600)
 def fetch_pubmed_title(pmid: str) -> str | None:
     if not pmid or not str(pmid).isdigit():
         return None
@@ -194,12 +192,8 @@ def docs_to_context(docs: List[Document]) -> str:
         lines.append(f"[PMID:{pmid}] {title} :: {snippet}")
     return "\n\n".join(lines)
 
-
-import re  # already imported
-
 def linkify_pmids_md(text: str) -> str:
-    """Make only the PMID numbers clickable (not the 'PMID:' label).
-    Works for '[PMID:12345678, 23456789]' and plain 'PMID: 12345678, 23456789'."""
+    """Make only the PMID numbers clickable (not the 'PMID:' label)."""
     if not text:
         return ""
 
@@ -207,25 +201,22 @@ def linkify_pmids_md(text: str) -> str:
         n = m.group(1)
         return f"[{n}](https://pubmed.ncbi.nlm.nih.gov/{n}/)"
 
-    # 1) Bracketed form: [PMID: ...]  → linkify every 5–9 digit number inside the brackets
+    # 1) Bracketed form
     def repl_bracket(m: re.Match) -> str:
-        inner = m.group(1)  # everything after 'PMID:' inside the brackets
+        inner = m.group(1)
         linked_inner = re.sub(r"\b(\d{5,9})\b", num_to_link, inner)
         return f"[PMID:{linked_inner}]"
 
     text = re.sub(r"\[PMID:\s*(.*?)\]", repl_bracket, text, flags=re.IGNORECASE)
 
-    # 2) Plain form: PMID: 12345, 67890  (not inside brackets)
+    # 2) Plain form
     def repl_plain(m: re.Match) -> str:
         nums = m.group(1)
         linked = re.sub(r"\b(\d{5,9})\b", num_to_link, nums)
         return f"PMID:{linked}"
 
     text = re.sub(r"(?i)\bPMID[:\s]+\s*([0-9][0-9,\s]{4,})", repl_plain, text)
-
     return text
-
-
 
 # -----------------------------
 # Load heavy resources (cached)
@@ -291,32 +282,36 @@ with st.sidebar:
     top_k = st.slider(
         "Number of retrieved abstracts",
         min_value=1,
-        max_value=100,   # ← was 50
-        value=30,        # ← was 5
+        max_value=100,   # updated
+        value=30,        # updated
         help=(
             "Based on your prompt, the RAG system selects the most relevant abstracts to answer your prompt. "
             "With this slider, you can select the number of abstracts it uses as overall context."
         ),
     )
-
-    search_type = st.selectbox("Retrieval mode", ["similarity", "mmr"], help="Similarity: returns the closest matching abstracts. Good for depth; may repeat similar studies.MMR (Diverse): returns a mix of relevant abstracts from different angles/models. Fewer repeats; broader view.")
+    search_type = st.selectbox(
+        "Retrieval mode",
+        ["similarity", "mmr"],
+        help="Similarity: returns the closest matching abstracts. Good for depth; may repeat similar studies."
+             "MMR (Diverse): returns a mix of relevant abstracts from different angles/models. Fewer repeats; broader view."
+    )
     show_context = st.checkbox("Show retrieved context", value=False)
     st.divider()
     if st.button("Clear cached resources"):
         load_resources.clear()
         st.success("Cleared! Resources will be reloaded on next query.")
 
+# Load resources once (cached)
+vectorstore, doc_chain, embeddings, index_dim, query_dim = load_resources()
+st.sidebar.caption(f"Index dim: {index_dim} | Query dim: {query_dim}")
+
 # -----------------------------
-# One-click example prompts (place this ABOVE the text_input)
+# Pre-run handler for example buttons
+# (Must execute BEFORE the text_input is instantiated)
 # -----------------------------
-with st.expander("Try an example prompt", expanded=True):
-    cols = st.columns(2)
-    for i, p in enumerate(EXAMPLE_PROMPTS):
-        if cols[i % 2].button(p, key=f"ex_{i}"):
-            # Set before the text_input exists, then rerun
-            st.session_state["query"] = p
-            st.session_state["auto_submit"] = True
-            st.rerun()
+if "pending_query" in st.session_state:
+    st.session_state["query"] = st.session_state.pop("pending_query")
+    st.session_state["auto_submit"] = True
 
 # -----------------------------
 # Query input + Run button
@@ -328,22 +323,16 @@ query = st.text_input(
 )
 submit = st.button("Run") or st.session_state.pop("auto_submit", False)
 
-
-# Load resources once (cached)
-vectorstore, doc_chain, embeddings, index_dim, query_dim = load_resources()
-st.sidebar.caption(f"Index dim: {index_dim} | Query dim: {query_dim}")
-
 # -----------------------------
-# One-click example prompts
+# One-click example prompts (below the textbox)
 # -----------------------------
 with st.expander("Try an example prompt", expanded=True):
     cols = st.columns(2)
     for i, p in enumerate(EXAMPLE_PROMPTS):
         if cols[i % 2].button(p, key=f"ex_{i}"):
-            st.session_state["query"] = p
-            st.session_state["auto_submit"] = True
+            # Stage the selection and rerun; pre-run handler sets query and auto-submits.
+            st.session_state["pending_query"] = p
             st.rerun()
-
 
 # -----------------------------
 # Retrieval
@@ -401,4 +390,4 @@ if submit and query.strip():
 
                 st.divider()
 else:
-    st.info("Enter a question and click **Run**.")
+    st.info("Enter a question and click **Run**, or choose an example below.")
