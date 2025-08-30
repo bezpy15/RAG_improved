@@ -68,6 +68,7 @@ EXAMPLE_PROMPTS = [
     "How do ketone esters affect endurance performance/recovery; subgroup by fueling; extract dose, βHB, outcomes; PMIDs?",
     "Do BHB-based interventions benefit MCI/early Alzheimer’s; prioritize trials; extract design, βHB, cognitive outcomes, AEs; PMIDs?",
     "What are exogenous BHB safety/tolerability profiles; extract dose, βHB, GI symptoms, electrolyte/acid–base changes, contraindications; PMIDs?",
+    "Is BHB anti-inflammatory?"
 ]
 
 # -----------------------------
@@ -274,7 +275,7 @@ submit = st.button("Run") or st.session_state.pop("auto_submit", False)
 # -----------------------------
 # One-click example prompts (shown BELOW the textbox)
 # -----------------------------
-with st.expander("View example prompts", expanded=True):  # open by default
+with st.expander("View example prompts", expanded=):  # open by default
     cols = st.columns(2)
     picked = None
     for i, p in enumerate(EXAMPLE_PROMPTS):
