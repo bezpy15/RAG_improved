@@ -306,12 +306,28 @@ with st.sidebar:
         load_resources.clear()
         st.success("Cleared! Resources will be reloaded on next query.")
 
+# -----------------------------
+# One-click example prompts (place this ABOVE the text_input)
+# -----------------------------
+with st.expander("Try an example prompt", expanded=True):
+    cols = st.columns(2)
+    for i, p in enumerate(EXAMPLE_PROMPTS):
+        if cols[i % 2].button(p, key=f"ex_{i}"):
+            # Set before the text_input exists, then rerun
+            st.session_state["query"] = p
+            st.session_state["auto_submit"] = True
+            st.rerun()
+
+# -----------------------------
+# Query input + Run button
+# -----------------------------
 query = st.text_input(
     "Ask a question about BHB",
     placeholder="e.g., What does BHB do to histone acetylation?",
-    key="query",  # keep query in session_state so buttons can set it
+    key="query",
 )
 submit = st.button("Run") or st.session_state.pop("auto_submit", False)
+
 
 # Load resources once (cached)
 vectorstore, doc_chain, embeddings, index_dim, query_dim = load_resources()
@@ -320,7 +336,7 @@ st.sidebar.caption(f"Index dim: {index_dim} | Query dim: {query_dim}")
 # -----------------------------
 # One-click example prompts
 # -----------------------------
-with st.expander("Try an example prompt", expanded=False):
+with st.expander("Try an example prompt", expanded=True):
     cols = st.columns(2)
     for i, p in enumerate(EXAMPLE_PROMPTS):
         if cols[i % 2].button(p, key=f"ex_{i}"):
