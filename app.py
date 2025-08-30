@@ -55,7 +55,6 @@ EXAMPLE_PROMPTS = [
     "How do ketone esters affect endurance performance/recovery; subgroup by fueling; extract dose, βHB, outcomes; PMIDs?",
     "Do BHB-based interventions benefit MCI/early Alzheimer’s; prioritize trials; extract design, βHB, cognitive outcomes, AEs; PMIDs?",
     "What are exogenous BHB safety/tolerability profiles; extract dose, βHB, GI symptoms, electrolyte/acid–base changes, contraindications; PMIDs?",
-    "Is BHB anti-inflammatory?"
 ]
 
 # -----------------------------
@@ -65,11 +64,9 @@ def extract_pmid_from_content(text: str) -> str | None:
     if not text:
         return None
     m = re.search(r"^---\s*PUBMED\s+ABSTRACT\s*\(\s*(?:PMID[: ]*)?(\d{5,9})\s*\)", text, flags=re.IGNORECASE | re.MULTILINE)
-    if m:
-        return m.group(1)
+    if m: return m.group(1)
     m = re.search(r"\bPMID\s*[:#]?\s*(\d{5,9})\b", text, flags=re.IGNORECASE)
-    if m:
-        return m.group(1)
+    if m: return m.group(1)
     m = re.search(r"\((\d{5,9})\)", text[:200])
     return m.group(1) if m else None
 
@@ -172,7 +169,7 @@ def linkify_pmids_md(text: str) -> str:
         nums = m.group(1)
         linked = re.sub(r"\b(\d{5,9})\b", num_to_link, nums)
         return f"PMID:{linked}"
-    text = re.sub(r"(?i)\bPMID[:\s]+\s*([0-9][0-9,\s]{4,})", repl_plain, text)
+    text = re.sub(r"(?i)\bPMID[:\s]+\s*([0-9][0-9,\s]{4,})", repl_plain)
     return text
 
 # -----------------------------
@@ -241,34 +238,9 @@ vectorstore, doc_chain, embeddings, index_dim, query_dim = load_resources()
 st.sidebar.caption(f"Index dim: {index_dim} | Query dim: {query_dim}")
 
 # -----------------------------
-# CSS spinner INSIDE text input (toggled by a hidden flag)
+# CSS spinner INSIDE text input (centered; toggled by a hidden flag)
 # -----------------------------
-SPINNER_CSS = """
-<style>
-/* Center a spinner inside the text input whenever #loading-flag exists */
-body:has(#loading-flag) div[data-testid="stTextInput"] { position: relative; }
-body:has(#loading-flag) div[data-testid="stTextInput"]::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 22px;
-  height: 22px;
-  transform: translate(-50%, -50%);
-  border: 3px solid rgba(128,128,128,.35);
-  border-top-color: rgba(128,128,128,.95);
-  border-radius: 50%;
-  animation: bhbspin .6s linear infinite;
-  z-index: 2;
-  pointer-events: none;
-}
-@keyframes bhbspin { to { transform: rotate(360deg); } }
-</style>
-"""
-
-css_slot = st.empty()
-css_slot.markdown(SPINNER_CSS, unsafe_allow_html=True)
-flag_slot = st.empty()  # we insert/remove a hidden div here to toggle the spinner
+# toggles the in-input spinner
 
 # -----------------------------
 # Pre-run handler for example buttons (before text_input uses key='query')
@@ -288,10 +260,13 @@ query = st.text_input(
 )
 submit = st.button("Run") or st.session_state.pop("auto_submit", False)
 
+# ---- NEW: placeholder right under the text box for the spinner text ----
+spinner_slot = st.empty()
+
 # -----------------------------
 # One-click example prompts (shown BELOW the textbox)
 # -----------------------------
-with st.expander("View example prompts", expanded=False):
+with st.expander("View example prompts", expanded=True):
     cols = st.columns(2)
     picked = None
     for i, p in enumerate(EXAMPLE_PROMPTS):
@@ -316,46 +291,49 @@ def retrieve(query: str, k: int, mode: str) -> List[Document]:
 # Main action
 # -----------------------------
 if submit and query.strip():
-    # Turn ON in-input spinner by inserting hidden flag
+    # Turn ON in-input spinner
     flag_slot.markdown('<div id="loading-flag" style="display:none"></div>', unsafe_allow_html=True)
 
-    with st.spinner("Retrieving and generating..."):
-        docs = retrieve(query, top_k, search_type)
+    # Show the native spinner *right under the text box* using the placeholder
+    with spinner_slot.container():
+        with st.spinner("Retrieving and generating..."):
+            docs = retrieve(query, top_k, search_type)
 
-        if not docs:
-            st.warning("No documents retrieved. Check your query or embedding/model compatibility.")
-        else:
-            if show_context:
-                st.markdown("### Retrieved context")
-                st.code(docs_to_context(docs))
+            if not docs:
+                st.warning("No documents retrieved. Check your query or embedding/model compatibility.")
+            else:
+                if show_context:
+                    st.markdown("### Retrieved context")
+                    st.code(docs_to_context(docs))
 
-            result = doc_chain.invoke({"context": docs, "question": query})
+                result = doc_chain.invoke({"context": docs, "question": query})
 
-            st.markdown("### Answer")
-            answer_text = getattr(result, "content", result)
-            answer_md = linkify_pmids_md(str(answer_text))
-            st.markdown(answer_md)
+                st.markdown("### Answer")
+                answer_text = getattr(result, "content", result)
+                answer_md = linkify_pmids_md(str(answer_text))
+                st.markdown(answer_md)
 
-            st.markdown("### Sources")
-            for i, d in enumerate(docs, start=1):
-                pmid = extract_pmid(d) or "NA"
-                title = extract_title(d, pmid)
-                pmid_str = str(pmid)
-                url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid_str}/" if pmid_str.isdigit() else None
+                st.markdown("### Sources")
+                for i, d in enumerate(docs, start=1):
+                    pmid = extract_pmid(d) or "NA"
+                    title = extract_title(d, pmid)
+                    pmid_str = str(pmid)
+                    url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid_str}/" if pmid_str.isdigit() else None
 
-                left, right = st.columns([0.80, 0.20])
-                with left:
-                    header = f"{i}. {title} — PMID {pmid_str}"
-                    with st.expander(header):
-                        st.write(d.page_content)
-                with right:
-                    if url:
-                        st.link_button("View on PubMed", url, use_container_width=True)
-                    else:
-                        st.caption("No PubMed link")
-                st.divider()
+                    left, right = st.columns([0.80, 0.20])
+                    with left:
+                        header = f"{i}. {title} — PMID {pmid_str}"
+                        with st.expander(header):
+                            st.write(d.page_content)
+                    with right:
+                        if url:
+                            st.link_button("View on PubMed", url, use_container_width=True)
+                        else:
+                            st.caption("No PubMed link")
+                    st.divider()
 
-    # Turn OFF in-input spinner
+    # Clear spinner + in-input flag after work completes
+    spinner_slot.empty()
     flag_slot.empty()
 else:
     st.info("Enter a question and click **Run**, or choose an example below.")
