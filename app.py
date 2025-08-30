@@ -301,7 +301,7 @@ results_slot = st.container()  # persistent area for results
 # -----------------------------
 # One-click example prompts (shown BELOW the textbox)
 # -----------------------------
-with st.expander("View example prompts", expanded=True):
+with st.expander("View example prompts", expanded=False):
     cols = st.columns(2)
     picked = None
     for i, p in enumerate(EXAMPLE_PROMPTS):
