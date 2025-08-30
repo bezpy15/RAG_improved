@@ -157,20 +157,30 @@ def docs_to_context(docs: List[Document]) -> str:
 def linkify_pmids_md(text: str) -> str:
     if not text:
         return ""
+
     def num_to_link(m: re.Match) -> str:
         n = m.group(1)
         return f"[{n}](https://pubmed.ncbi.nlm.nih.gov/{n}/)"
+
+    # 1) [PMID: ...] — linkify 5–9 digit numbers inside the brackets
     def repl_bracket(m: re.Match) -> str:
         inner = m.group(1)
         linked_inner = re.sub(r"\b(\d{5,9})\b", num_to_link, inner)
         return f"[PMID:{linked_inner}]"
+
     text = re.sub(r"\[PMID:\s*(.*?)\]", repl_bracket, text, flags=re.IGNORECASE)
+
+    # 2) Plain "PMID: 12345, 67890" — linkify numbers after the label
     def repl_plain(m: re.Match) -> str:
         nums = m.group(1)
         linked = re.sub(r"\b(\d{5,9})\b", num_to_link, nums)
         return f"PMID:{linked}"
-    text = re.sub(r"(?i)\bPMID[:\s]+\s*([0-9][0-9,\s]{4,})", repl_plain)
+
+    # ✅ add the missing third argument: `text`
+    text = re.sub(r"(?i)\bPMID[:\s]+\s*([0-9][0-9,\s]{4,})", repl_plain, text)
+
     return text
+
 
 # -----------------------------
 # Load heavy resources (cached)
