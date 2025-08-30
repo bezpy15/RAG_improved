@@ -30,6 +30,20 @@ st.caption(
     "It is also programmed to give references for all of its claims. ")
 
 # -----------------------------
+# Example prompts (≤15 words each)
+# -----------------------------
+EXAMPLE_PROMPTS = [
+    "Does BHB alter chromatin in humans; separate HDAC from Kbhb; report dose, βHB, assays, PMIDs?",
+    "Do exogenous BHB interventions improve adult cognition; prioritize RCTs; extract dose, peak βHB, AEs; PMIDs?",
+    "Does BHB modulate NLRP3 and cytokines; separate exogenous/endogenous ketosis; report βHB levels; PMIDs?",
+    "Does exogenous BHB improve insulin sensitivity in IR/T2D; prioritize RCTs; extract dose, βHB; PMIDs?",
+    "How do ketone esters affect endurance performance/recovery; subgroup by fueling; extract dose, βHB, outcomes; PMIDs?",
+    "Do BHB-based interventions benefit MCI/early Alzheimer’s; prioritize trials; extract design, βHB, cognitive outcomes, AEs; PMIDs?",
+    "What are exogenous BHB safety/tolerability profiles; extract dose, βHB, GI symptoms, electrolyte/acid–base changes, contraindications; PMIDs?",
+]
+
+
+# -----------------------------
 # Configuration via st.secrets
 # -----------------------------
 # REQUIRED:
@@ -292,12 +306,28 @@ with st.sidebar:
         load_resources.clear()
         st.success("Cleared! Resources will be reloaded on next query.")
 
-query = st.text_input("Ask a question about BHB", placeholder="e.g., What does BHB do to histone acetylation?")
-submit = st.button("Run")
+query = st.text_input(
+    "Ask a question about BHB",
+    placeholder="e.g., What does BHB do to histone acetylation?",
+    key="query",  # keep query in session_state so buttons can set it
+)
+submit = st.button("Run") or st.session_state.pop("auto_submit", False)
 
 # Load resources once (cached)
 vectorstore, doc_chain, embeddings, index_dim, query_dim = load_resources()
 st.sidebar.caption(f"Index dim: {index_dim} | Query dim: {query_dim}")
+
+# -----------------------------
+# One-click example prompts
+# -----------------------------
+with st.expander("Try an example prompt", expanded=False):
+    cols = st.columns(2)
+    for i, p in enumerate(EXAMPLE_PROMPTS):
+        if cols[i % 2].button(p, key=f"ex_{i}"):
+            st.session_state["query"] = p
+            st.session_state["auto_submit"] = True
+            st.rerun()
+
 
 # -----------------------------
 # Retrieval
