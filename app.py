@@ -51,7 +51,7 @@ EXAMPLE_PROMPTS = [
     "Characterize BHB’s influence on NLRP3 inflammasome and cytokines; note moderators and contradictions.",
     "Summarize brain-related outcomes with BHB across neurological models and endpoints.",
     "Describe exercise-related effects of BHB on performance, substrate use, and recovery.",
-    "Differentiate D-BHB, L-BHB, and racemic effects on metabolism, signaling, and phenotypes.",
+    "Map BHB effects on HCAR2/GPR109A signaling with downstream markers and contexts.",
     "Synthesize immune effects of BHB across contexts; mention key cytokines and cell responses.",
     "Summarize safety and tolerability signals for exogenous BHB in human studies.",
     "Integrate mitochondrial and redox effects of BHB with reported markers and tissues.",
