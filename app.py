@@ -48,13 +48,14 @@ if not OPENAI_API_KEY or not DRIVE_FILE_ID or not EMBEDDING_MODEL:
 # Example prompts (≤15 words each)
 # -----------------------------
 EXAMPLE_PROMPTS = [
-    "Does BHB alter chromatin in humans; separate HDAC from Kbhb; report dose, βHB, assays, PMIDs?",
-    "Do exogenous BHB interventions improve adult cognition; prioritize RCTs; extract dose, peak βHB, AEs; PMIDs?",
-    "Does BHB modulate NLRP3 and cytokines; separate exogenous/endogenous ketosis; report βHB levels; PMIDs?",
-    "Does exogenous BHB improve insulin sensitivity in IR/T2D; prioritize RCTs; extract dose, βHB; PMIDs?",
-    "How do ketone esters affect endurance performance/recovery; subgroup by fueling; extract dose, βHB, outcomes; PMIDs?",
-    "Do BHB-based interventions benefit MCI/early Alzheimer’s; prioritize trials; extract design, βHB, cognitive outcomes, AEs; PMIDs?",
-    "What are exogenous BHB safety/tolerability profiles; extract dose, βHB, GI symptoms, electrolyte/acid–base changes, contraindications; PMIDs?",
+    "Does BHB alter chromatin structure in humans. If so, via which mechanisms?",
+    "Do exogenous BHB interventions improve adult cognition?",
+    "Does BHB modulate NLRP3, list potential molecular mechanisms involved in the regulation of NLRP3",
+    "Does exogenous BHB improve insulin sensitivity in IR/T2D?",
+    "How do ketone esters affect endurance performance/recovery; subgroup by study population?",
+    "Via which mechanisms might BHB alleviate non-alcoholic liver disease?",
+    "Via which mechanisms might BHB alleviate traumatic brain injury?",
+    "Summarize the safety of the ketone monoester, only focus on human studies"
 ]
 
 # -----------------------------
