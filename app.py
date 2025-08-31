@@ -44,17 +44,19 @@ if not OPENAI_API_KEY or not DRIVE_FILE_ID or not EMBEDDING_MODEL:
     st.error("Missing required secrets. Please set OPENAI_API_KEY, DRIVE_FILE_ID, and EMBEDDING_MODEL in Secrets.")
     st.stop()
 
-# -----------------------------
-# Example prompts (≤15 words each)
-# -----------------------------
+#Examples
+
 EXAMPLE_PROMPTS = [
-    "Does BHB alter chromatin in humans; separate HDAC from Kbhb; report dose, βHB, assays, PMIDs?",
-    "Do exogenous BHB interventions improve adult cognition; prioritize RCTs; extract dose, peak βHB, AEs; PMIDs?",
-    "Does BHB modulate NLRP3 and cytokines; separate exogenous/endogenous ketosis; report βHB levels; PMIDs?",
-    "Does exogenous BHB improve insulin sensitivity in IR/T2D; prioritize RCTs; extract dose, βHB; PMIDs?",
-    "How do ketone esters affect endurance performance/recovery; subgroup by fueling; extract dose, βHB, outcomes; PMIDs?",
-    "Do BHB-based interventions benefit MCI/early Alzheimer’s; prioritize trials; extract design, βHB, cognitive outcomes, AEs; PMIDs?",
-    "What are exogenous BHB safety/tolerability profiles; extract dose, βHB, GI symptoms, electrolyte/acid–base changes, contraindications; PMIDs?",
+    
+    "Characterize BHB’s influence on NLRP3 inflammasome and cytokines; note moderators and contradictions.",
+    "Summarize brain-related outcomes with BHB across neurological models and endpoints.",
+    "Describe exercise-related effects of BHB on performance, substrate use, and recovery.",
+    "Differentiate D-BHB, L-BHB, and racemic effects on metabolism, signaling, and phenotypes.",
+    "Synthesize immune effects of BHB across contexts; mention key cytokines and cell responses.",
+    "Summarize safety and tolerability signals for exogenous BHB in human studies.",
+    "Integrate mitochondrial and redox effects of BHB with reported markers and tissues.",
+    "Summarize evidence on ketone transport and flux involving BHB.",
+
 ]
 
 # -----------------------------
@@ -254,7 +256,7 @@ if pending is not None:
 # -----------------------------
 query = st.text_input(
     "Ask a question about BHB",
-    placeholder="e.g., What does BHB do to histone acetylation?",
+    placeholder="e.g., List mechanisms via which BHB might alleviate non-alcoholic fatty liver disease",
     key="query",
 )
 submit = st.button("Run") or st.session_state.pop("auto_submit", False)
