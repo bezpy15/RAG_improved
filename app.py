@@ -48,14 +48,13 @@ if not OPENAI_API_KEY or not DRIVE_FILE_ID or not EMBEDDING_MODEL:
 # Example prompts (≤15 words each)
 # -----------------------------
 EXAMPLE_PROMPTS = [
-    "Does BHB alter chromatin structure in humans. If so, via which mechanisms?",
-    "Do exogenous BHB interventions improve adult cognition?",
-    "Does BHB modulate NLRP3, list potential molecular mechanisms involved in the regulation of NLRP3",
-    "Does exogenous BHB improve insulin sensitivity in IR/T2D?",
-    "How do ketone esters affect endurance performance/recovery; subgroup by study population?",
-    "Via which mechanisms might BHB alleviate non-alcoholic liver disease?",
-    "Via which mechanisms might BHB alleviate traumatic brain injury?",
-    "Summarize the safety of the ketone monoester, only focus on human studies"
+    "Does BHB alter chromatin in humans; separate HDAC from Kbhb; report dose, βHB, assays, PMIDs?",
+    "Do exogenous BHB interventions improve adult cognition; prioritize RCTs; extract dose, peak βHB, AEs; PMIDs?",
+    "Does BHB modulate NLRP3 and cytokines; separate exogenous/endogenous ketosis; report βHB levels; PMIDs?",
+    "Does exogenous BHB improve insulin sensitivity in IR/T2D; prioritize RCTs; extract dose, βHB; PMIDs?",
+    "How do ketone esters affect endurance performance/recovery; subgroup by fueling; extract dose, βHB, outcomes; PMIDs?",
+    "Do BHB-based interventions benefit MCI/early Alzheimer’s; prioritize trials; extract design, βHB, cognitive outcomes, AEs; PMIDs?",
+    "What are exogenous BHB safety/tolerability profiles; extract dose, βHB, GI symptoms, electrolyte/acid–base changes, contraindications; PMIDs?",
 ]
 
 # -----------------------------
@@ -65,9 +64,11 @@ def extract_pmid_from_content(text: str) -> str | None:
     if not text:
         return None
     m = re.search(r"^---\s*PUBMED\s+ABSTRACT\s*\(\s*(?:PMID[: ]*)?(\d{5,9})\s*\)", text, flags=re.IGNORECASE | re.MULTILINE)
-    if m: return m.group(1)
+    if m:
+        return m.group(1)
     m = re.search(r"\bPMID\s*[:#]?\s*(\d{5,9})\b", text, flags=re.IGNORECASE)
-    if m: return m.group(1)
+    if m:
+        return m.group(1)
     m = re.search(r"\((\d{5,9})\)", text[:200])
     return m.group(1) if m else None
 
@@ -158,30 +159,22 @@ def docs_to_context(docs: List[Document]) -> str:
 def linkify_pmids_md(text: str) -> str:
     if not text:
         return ""
-
     def num_to_link(m: re.Match) -> str:
         n = m.group(1)
         return f"[{n}](https://pubmed.ncbi.nlm.nih.gov/{n}/)"
-
-    # 1) [PMID: ...] — linkify 5–9 digit numbers inside the brackets
+    # [PMID: ...] form
     def repl_bracket(m: re.Match) -> str:
         inner = m.group(1)
         linked_inner = re.sub(r"\b(\d{5,9})\b", num_to_link, inner)
         return f"[PMID:{linked_inner}]"
-
     text = re.sub(r"\[PMID:\s*(.*?)\]", repl_bracket, text, flags=re.IGNORECASE)
-
-    # 2) Plain "PMID: 12345, 67890" — linkify numbers after the label
+    # Plain "PMID: 12345, 67890"
     def repl_plain(m: re.Match) -> str:
         nums = m.group(1)
         linked = re.sub(r"\b(\d{5,9})\b", num_to_link, nums)
         return f"PMID:{linked}"
-
-    # ✅ add the missing third argument: `text`
     text = re.sub(r"(?i)\bPMID[:\s]+\s*([0-9][0-9,\s]{4,})", repl_plain, text)
-
     return text
-
 
 # -----------------------------
 # Load heavy resources (cached)
@@ -234,7 +227,7 @@ with st.sidebar:
         "Retrieval mode",
         ["similarity", "mmr"],
         help=(
-            "Similarity: returns the closest matching abstracts. Good for depth; may repeat similar studies."
+            "Similarity: returns the closest matching abstracts. Good for depth; may repeat similar studies. "
             "MMR (Diverse): returns a mix of relevant abstracts from different angles/models. Fewer repeats; broader view."
         ),
     )
@@ -247,11 +240,6 @@ with st.sidebar:
 # Load resources (cached once)
 vectorstore, doc_chain, embeddings, index_dim, query_dim = load_resources()
 st.sidebar.caption(f"Index dim: {index_dim} | Query dim: {query_dim}")
-
-# -----------------------------
-# CSS spinner INSIDE text input (centered; toggled by a hidden flag)
-# -----------------------------
-
 
 # -----------------------------
 # Pre-run handler for example buttons (before text_input uses key='query')
@@ -271,15 +259,14 @@ query = st.text_input(
 )
 submit = st.button("Run") or st.session_state.pop("auto_submit", False)
 
-# ---- NEW: placeholder right under the text box for the spinner text ----
-spinner_slot = st.empty()
+# Placeholders under the textbox
+spinner_slot = st.empty()      # shows "Retrieving and generating..." right here
 results_slot = st.container()  # persistent area for results
-
 
 # -----------------------------
 # One-click example prompts (shown BELOW the textbox)
 # -----------------------------
-with st.expander("View example prompts", expanded=False):
+with st.expander("View example prompts", expanded=True):
     cols = st.columns(2)
     picked = None
     for i, p in enumerate(EXAMPLE_PROMPTS):
@@ -307,10 +294,7 @@ docs = []
 answer_md = ""
 
 if submit and query.strip():
-    # Turn ON in-input spinner
-    flag_slot.markdown('<div id="loading-flag" style="display:none"></div>', unsafe_allow_html=True)
-
-    # Compute inside the spinner, but DO NOT render results here
+    # Compute inside the spinner (rendered right under the textbox)
     with spinner_slot.container():
         with st.spinner("Retrieving and generating..."):
             docs = retrieve(query, top_k, search_type)
@@ -319,11 +303,10 @@ if submit and query.strip():
                 answer_text = getattr(result, "content", result)
                 answer_md = linkify_pmids_md(str(answer_text))
 
-    # Turn OFF spinner(s)
+    # Clear the spinner
     spinner_slot.empty()
-    flag_slot.empty()
 
-    # --- Render persistently outside the spinner ---
+    # Render persistently
     with results_slot:
         if not docs:
             st.warning("No documents retrieved. Check your query or embedding/model compatibility.")
@@ -355,4 +338,3 @@ if submit and query.strip():
                 st.divider()
 else:
     st.info("Enter a question and click **Run**, or choose an example below.")
-
