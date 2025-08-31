@@ -251,30 +251,7 @@ st.sidebar.caption(f"Index dim: {index_dim} | Query dim: {query_dim}")
 # -----------------------------
 # CSS spinner INSIDE text input (centered; toggled by a hidden flag)
 # -----------------------------
-SPINNER_CSS = """
-<style>
-body:has(#loading-flag) div[data-testid="stTextInput"] { position: relative; }
-body:has(#loading-flag) div[data-testid="stTextInput"]::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 22px;
-  height: 22px;
-  transform: translate(-50%, -50%);
-  border: 3px solid rgba(128,128,128,.35);
-  border-top-color: rgba(128,128,128,.95);
-  border-radius: 50%;
-  animation: bhbspin .6s linear infinite;
-  z-index: 2;
-  pointer-events: none;
-}
-@keyframes bhbspin { to { transform: rotate(360deg); } }
-</style>
-"""
-css_slot = st.empty()
-css_slot.markdown(SPINNER_CSS, unsafe_allow_html=True)
-flag_slot = st.empty()  # toggles the in-input spinner
+
 
 # -----------------------------
 # Pre-run handler for example buttons (before text_input uses key='query')
