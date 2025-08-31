@@ -49,13 +49,13 @@ if not OPENAI_API_KEY or not DRIVE_FILE_ID or not EMBEDDING_MODEL:
 EXAMPLE_PROMPTS = [
     
     "Characterize BHB’s influence on NLRP3 inflammasome and cytokines; note moderators and contradictions.",
-    "Summarize brain-related outcomes with BHB across neurological models and endpoints.",
+    "Summarize BHB-linked HDAC effects on chromatin: key marks, gene programs, context.",
     "Describe exercise-related effects of BHB on performance, substrate use, and recovery.",
     "Map BHB effects on HCAR2/GPR109A signaling with downstream markers and contexts.",
     "Synthesize immune effects of BHB across contexts; mention key cytokines and cell responses.",
     "Summarize safety and tolerability signals for exogenous BHB in human studies.",
     "Integrate mitochondrial and redox effects of BHB with reported markers and tissues.",
-    "Summarize evidence on ketone transport and flux involving BHB.",
+    "List mechanisms via which BHB can alleviate chronic obstructive pulmonary disease",
 
 ]
 
