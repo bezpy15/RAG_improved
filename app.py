@@ -12,6 +12,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.documents import Document
+from langchain_core.runnables import RunnableLambda
 
 # Utilities
 import gdown
@@ -158,6 +159,17 @@ def docs_to_context(docs: List[Document]) -> str:
         lines.append(f"[PMID:{pmid}] {title} :: {snippet}")
     return "\n\n".join(lines)
 
+
+def docs_to_prompt_context(docs: List[Document]) -> str:
+    if not isinstance(docs, list):
+        return str(docs)
+    chunks: List[str] = []
+    for doc in docs:
+        content = getattr(doc, "page_content", "") or ""
+        if content:
+            chunks.append(content)
+    return "\n\n".join(chunks)
+
 def linkify_pmids_md(text: str) -> str:
     if not text:
         return ""
@@ -207,7 +219,15 @@ def load_resources():
             ("human", "Question: {question}\n\nContext:\n{context}\n\nGive a direct answer first, then cite PMIDs."),
         ]
     )
-    doc_chain = create_stuff_documents_chain(llm, prompt)
+    doc_chain = (
+        {
+            "context": RunnableLambda(lambda x: x.get("context", []))
+            | RunnableLambda(docs_to_prompt_context),
+            "question": RunnableLambda(lambda x: x.get("question", "")),
+        }
+        | prompt
+        | llm
+    )
     return vectorstore, doc_chain, embeddings, index_dim, query_dim
 
 # -----------------------------
